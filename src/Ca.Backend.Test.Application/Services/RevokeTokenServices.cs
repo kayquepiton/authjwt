@@ -1,34 +1,31 @@
-using AutoMapper;
-using Ca.Backend.Test.Application.Models.Request;
+using Ca.Backend.Test.Application.Services.Interfaces;
 using Ca.Backend.Test.Infra.Data.Repository;
-using Cepedi.Serasa.Cadastro.Domain.Services.Auth;
 
 namespace Ca.Backend.Test.Application.Services;
 
 public class RevokeTokenServices : IRevokeTokenServices
 {
     private readonly IUserRepository _userRepository;
-        private readonly IMapper _mapper;
 
-    public RevokeTokenServices(IUserRepository userRepository, IMapper mapper)
+    public RevokeTokenServices(IUserRepository userRepository)
     {
         _userRepository = userRepository;
-        _mapper = mapper;
     }
 
-    public async Task<bool> RevokeTokenAsync(RefreshTokenRequest request)
+    public async Task<bool> RevokeTokenAsync(string refreshToken)
     {
-        var user = await _userRepository.GetUserByRefreshTokenAsync(request.RefreshToken);
+        var user = await _userRepository.GetUserByRefreshTokenAsync(refreshToken);
 
         if (user is null)
-            throw new ApplicationException($"Invalid refresh token for request: {request.RefreshToken}");
-        
+        {
+            return false;
+        }
+
         user.RefreshToken = null;
-        user.ExpirationRefreshToken = DateTime.UtcNow;
+        user.ExpirationRefreshToken = DateTime.MinValue;
 
         await _userRepository.UpdateAsync(user);
-
         return true;
     }
-
 }
+

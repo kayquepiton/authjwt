@@ -1,6 +1,6 @@
 namespace Ca.Backend.Test.Application.Models.Response;
 
-public class AuthenticateUserResponse
+public class AuthenticateResponse
 {
     public bool Authenticated { get; set; }
     public DateTime Created { get; set; }

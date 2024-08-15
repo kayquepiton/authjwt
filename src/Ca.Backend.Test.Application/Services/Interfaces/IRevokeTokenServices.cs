@@ -1,9 +1,7 @@
-using Ca.Backend.Test.Application.Models.Request;
-
-namespace Cepedi.Serasa.Cadastro.Domain.Services.Auth;
+namespace Ca.Backend.Test.Application.Services.Interfaces;
 
 public interface IRevokeTokenServices
 {
-    Task<bool> RevokeTokenAsync(RefreshTokenRequest request);
+    Task<bool> RevokeTokenAsync(string refreshToken);
 }
 

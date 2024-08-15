@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Ca.Backend.Test.Infra.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class AuthMigration : Migration
+    public partial class UsersMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -3,8 +3,8 @@ using Ca.Backend.Test.Application.Models.Response;
 
 namespace Ca.Backend.Test.Application.Services.Interfaces;
 
-public interface IAuthenticateUserServices
+public interface IAuthenticateServices
 {
-    Task<AuthenticateUserResponse> AuthenticateAsync(AuthenticateUserRequest authRequest);
+    Task<AuthenticateResponse> AuthenticateAsync(AuthenticateRequest authRequest);
 }
 

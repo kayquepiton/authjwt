@@ -5,6 +5,7 @@ using Ca.Backend.Test.Application.Models.Response.Api;
 using Ca.Backend.Test.Domain.Entities;
 
 namespace Ca.Backend.Test.Application.Mappings;
+
 public class MappingProfile : Profile
 {
     public MappingProfile()
@@ -21,11 +22,17 @@ public class MappingProfile : Profile
         CreateMap<BillingLineRequest, BillingLineEntity>();
         CreateMap<BillingLineEntity, BillingLineResponse>();
 
-        CreateMap<UserRequest, UserEntity>();
-        CreateMap<UserEntity, UserResponse>();
+        CreateMap<UserRequest, UserEntity>()
+            .ForMember(dest => dest.Roles, opt => opt.Ignore());
+
+        CreateMap<UserEntity, UserResponse>()
+            .ForMember(dest => dest.Roles, opt => opt.MapFrom(src => src.Roles.Select(r => r.Name).ToList()));
+
+        CreateMap<RoleRequest, RoleEntity>();
+        CreateMap<RoleEntity, RoleResponse>();
 
         CreateMap<CustomerApiResponse, CustomerEntity>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore()); 
+            .ForMember(dest => dest.Id, opt => opt.Ignore());
 
         CreateMap<BillingApiResponse, BillingEntity>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -36,4 +43,3 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Id, opt => opt.Ignore());
     }
 }
-

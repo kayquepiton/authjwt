@@ -23,8 +23,10 @@ public class UserController : ControllerBase
     /// 
     ///     POST /api/user
     ///     {
-    ///        "username": "novo_usuario",
-    ///        "password": "senha_segura"
+    ///        "name": "John Doe",
+    ///        "username": "johndoe",
+    ///        "password": "P@ssw0rd!",
+    ///        "roleIds": ["guid1", "guid2"]
     ///     }
     ///     
     /// </remarks>
@@ -76,7 +78,7 @@ public class UserController : ControllerBase
     /// </remarks>
     /// <returns>Retorna uma lista de usuários</returns>
     /// <response code="200">OK - Usuários encontrados</response>
-    /// <response code="400">Bad Request - Requisição do Usuário é Inválida</response>
+    /// <response code="400">Bad Request - Requisição do Cliente é Inválida</response>
     [HttpGet]
     [ProducesResponseType(typeof(GenericHttpResponse<IEnumerable<UserResponse>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(GenericHttpResponse<>), StatusCodes.Status400BadRequest)]
@@ -95,8 +97,10 @@ public class UserController : ControllerBase
     /// 
     ///     PUT /api/user/{id}
     ///     {
-    ///        "username": "usuario_atualizado",
-    ///        "password": "nova_senha"
+    ///        "name": "John Doe",
+    ///        "username": "johndoe",
+    ///        "password": "newP@ssw0rd!",
+    ///        "roleIds": ["guid1", "guid2"]
     ///     }
     ///     
     /// </remarks>
@@ -126,10 +130,10 @@ public class UserController : ControllerBase
     /// </remarks>
     /// <param name="id">ID do usuário</param>
     /// <response code="204">No Content - Usuário deletado com sucesso</response>
-    /// <response code="404">Not Found - Usuário não encontrado</response>
+    /// <response code="400">Bad Request - Requisição do Cliente é Inválida</response>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(GenericHttpResponse<>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> DeleteUserAsync(Guid id)
     {
         await _userServices.DeleteByIdAsync(id);

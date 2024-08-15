@@ -1,9 +1,5 @@
-using AutoMapper;
-using Ca.Backend.Test.Application.Models.Request;
 using Ca.Backend.Test.Application.Models.Response;
 using Ca.Backend.Test.Application.Services.Interfaces;
-using Ca.Backend.Test.Domain.Entities;
-using System.Security.Claims;
 using Ca.Backend.Test.Infra.Data.Repository;
 
 namespace Ca.Backend.Test.Application.Services;
@@ -11,63 +7,40 @@ namespace Ca.Backend.Test.Application.Services;
 public class RefreshTokenServices : IRefreshTokenServices
 {
     private readonly IUserRepository _userRepository;
-    private readonly IMapper _mapper;
-    private readonly ITokenServices _tokenServices;
+    private readonly ITokenGeneratorServices _tokenGeneratorServices;
 
-    public RefreshTokenServices(IUserRepository userRepository, IMapper mapper, ITokenServices tokenServices)
+    public RefreshTokenServices(
+        IUserRepository userRepository,
+        ITokenGeneratorServices tokenGeneratorServices)
     {
         _userRepository = userRepository;
-        _mapper = mapper;
-        _tokenServices = tokenServices;
+        _tokenGeneratorServices = tokenGeneratorServices;
     }
 
-    public async Task<RefreshTokenResponse> RefreshTokenAsync(RefreshTokenRequest request)
+    public async Task<AuthenticateResponse> RefreshTokenAsync(string refreshToken)
     {
-        var user = await _userRepository.GetUserByRefreshTokenAsync(request.RefreshToken);
+        var user = await _userRepository.GetUserByRefreshTokenAsync(refreshToken);
 
-        if (user is null)
-            throw new ApplicationException("User not found or refresh token is invalid.");
-
-        if (DateTime.UtcNow >= user.ExpirationRefreshToken)
-            throw new ApplicationException("Refresh token has expired. Please authenticate again.");
-
-        var (accessToken, expiresAccessToken) = GenerateAccessToken(user);
-        var (refreshToken, expiresRefreshToken) = await GenerateRefreshTokenAndUpdateDatabaseAsync(user);
-
-        var response = new RefreshTokenResponse
+        if (user is null || user.ExpirationRefreshToken <= DateTime.UtcNow)
         {
-            Authenticated = true,
-            Created = DateTime.UtcNow,
-            AccessToken = accessToken,
-            AccessTokenExpiration = expiresAccessToken,
-            RefreshToken = refreshToken,
-            RefreshTokenExpiration = expiresRefreshToken
-        };
+            throw new UnauthorizedAccessException("Invalid or expired refresh token.");
+        }
 
-        return response;
-    }
+        var accessTokenResult = _tokenGeneratorServices.GenerateJwtToken(user);
+        var newRefreshTokenResult = _tokenGeneratorServices.GenerateRefreshToken();
 
-    private (string, DateTime) GenerateAccessToken(UserEntity user)
-    {
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
-        };
-
-        return _tokenServices.GenerateAccessToken(claims);
-    }
-
-    private async Task<(string, DateTime)> GenerateRefreshTokenAndUpdateDatabaseAsync(UserEntity user)
-    {
-        var (refreshToken, expiresRefreshToken) = _tokenServices.GenerateRefreshToken();
-
-        user.RefreshToken = refreshToken;
-        user.ExpirationRefreshToken = expiresRefreshToken;
-
+        user.RefreshToken = newRefreshTokenResult.Token;
+        user.ExpirationRefreshToken = newRefreshTokenResult.Expiration;
         await _userRepository.UpdateAsync(user);
 
-        return (refreshToken, expiresRefreshToken);
+        return new AuthenticateResponse
+        {
+            Authenticated = true,
+            AccessToken = accessTokenResult.Token,
+            AccessTokenExpiration = accessTokenResult.Expiration,
+            RefreshToken = newRefreshTokenResult.Token,
+            RefreshTokenExpiration = newRefreshTokenResult.Expiration
+        };
     }
-
 }
+

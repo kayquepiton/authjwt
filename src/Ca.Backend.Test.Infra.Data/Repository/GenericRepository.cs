@@ -21,7 +21,7 @@ public class GenericRepository<TEntity> : IGenericRepository<TEntity> where TEnt
         return entity;
     }
 
-    public async Task<TEntity?> GetByIdAsync(Guid id)
+    public virtual async Task<TEntity?> GetByIdAsync(Guid id)
     {
         return await _dbSet.SingleOrDefaultAsync(entity => entity.Id.Equals(id));
     }

@@ -3,31 +3,24 @@ using System.Text;
 using Ca.Backend.Test.API.Middlewares;
 using Ca.Backend.Test.Application.Mappings;
 using Ca.Backend.Test.Infra.IoC;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Models;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Ca.Backend.Test.Application.Configuration;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load JWT configuration
-var jwtConfig = builder.Configuration.GetSection("Jwt").Get<TokenConfiguration>();
-
-builder.Services.Configure<TokenConfiguration>(builder.Configuration.GetSection("Jwt"));
-//builder.Services.AddSingleton(jwtConfig);
-
-// Configure services
-ConfigureServices(builder.Services, builder.Configuration, jwtConfig);
+// Add services to the container.
+ConfigureServices(builder.Services, builder.Configuration);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
+// Configure the HTTP request pipeline.
 ConfigureMiddleware(app);
 
 app.Run();
 
-void ConfigureServices(IServiceCollection services, IConfiguration configuration, TokenConfiguration jwtConfig)
+void ConfigureServices(IServiceCollection services, IConfiguration configuration)
 {
     // Adds controllers to the services container
     services.AddControllers();
@@ -57,56 +50,64 @@ void ConfigureServices(IServiceCollection services, IConfiguration configuration
                 Url = new Uri("https://github.com/kayquepiton")
             }
         });
-        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-        {
-            Name = "Authorization",
-            Type = SecuritySchemeType.ApiKey,
-            Scheme = "Bearer",
-            BearerFormat = "JWT",
-            In = ParameterLocation.Header,
-            Description = "Authorization header using the Bearer scheme."
-        });;
-        c.AddSecurityRequirement(new OpenApiSecurityRequirement
-        {
-            {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Bearer"
-                        }
-                    },
-                    new string[] {}
-            }
-        });
 
         // Configures XML comments for Swagger
         var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
         var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
         c.IncludeXmlComments(xmlPath);
-    });
 
-    // Configure JWT authentication
-    var key = Encoding.UTF8.GetBytes(jwtConfig.Secret);
-    services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
+        // Configures JWT Bearer token support in Swagger
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = jwtConfig.Issuer,
-                ValidAudience = jwtConfig.Audience,
-                IssuerSigningKey = new SymmetricSecurityKey(key)
-            };
+            Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer"
         });
 
-    services.AddAuthorization();
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                new string[] { }
+            }
+        });
+    });
 
-    // Configures application dependencies
+    // Configura autenticação JWT
+    var key = Encoding.ASCII.GetBytes(configuration["Jwt:Secret"]);
+    services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = true,
+            ValidIssuer = configuration["Jwt:Issuer"],
+            ValidateAudience = true,
+            ValidAudience = configuration["Jwt:Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero // Elimina o tempo de tolerância para expiração do token
+        };
+    });
+
+
+    // Configura as dependências da aplicação
     services.ConfigureAppDependencies(configuration);
 
     // Adds HttpClient to the container
@@ -126,15 +127,17 @@ void ConfigureMiddleware(WebApplication app)
         });
     }
 
-    // Adds authentication and authorization middleware
-    app.UseAuthentication();
-    app.UseAuthorization();
-
     // Adds custom exception handling middleware
     app.UseMiddleware<ExceptionMiddleware>();
 
     // Adds routing middleware
     app.UseRouting();
+
+    // Ativa a autenticação JWT
+    app.UseAuthentication();
+
+    // Ativa a autorização
+    app.UseAuthorization();
 
     // Redirects HTTP requests to HTTPS
     app.UseHttpsRedirection();

@@ -10,6 +10,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<BillingEntity> Billings { get; set; }
     public DbSet<BillingLineEntity> BillingLines { get; set; }
     public DbSet<UserEntity> Users { get; set; }
+    public DbSet<RoleEntity> Roles { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ca.Backend.Test.API.Controllers;
-
+[Authorize(Roles = "Admin")]
 [ApiController]
 [Route("api/[controller]")]
 public class ProductController : ControllerBase
@@ -78,7 +78,6 @@ public class ProductController : ControllerBase
     /// <response code="200">OK - Produtos encontrados</response>
     /// <response code="400">Bad Request - Requisição do Cliente é Inválida</response>
     [HttpGet]
-    //[Authorize]
     [ProducesResponseType(typeof(GenericHttpResponse<IEnumerable<ProductResponse>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(GenericHttpResponse<>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetAllProductsAsync()
